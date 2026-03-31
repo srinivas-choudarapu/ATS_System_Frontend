@@ -71,6 +71,12 @@ export function runAnalysis(resumeId, jdText) {
 export function getAnalysisById(id) {
 	return request(`/api/analysis/${id}`);
 }
+export function deleteAnalysis(id) {
+	return request(`/api/analysis/${id}`, { method: "DELETE" });
+}
+export function deleteAnalysisByResumeId(resumeId) {
+	return request(`/api/analysis/resume/${resumeId}`, { method: "DELETE" });
+}
 export function getAnalysisByResumeId(resumeId) {
 	return request(`/api/analysis/resume/${resumeId}`);
 }
