@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import * as api from "../utils/api";
 import { isExpiredS3SignedUrl } from "../utils/s3Url";
 
-export default function Dashboard() {
+export default function Resumes() {
 	const [loading, setLoading] = useState(true);
 	const [items, setItems] = useState([]);
 
 	useEffect(() => {
 		(async () => {
 			try {
-				const data = await api.getResumeHistory();
+				const data = await api.getAllResumes();
 				setItems(data || []);
 			} catch (e) {
 				window.__toast?.push({ type: "error", title: "Failed to load", description: e.message });
@@ -60,7 +60,7 @@ export default function Dashboard() {
 	return (
 		<div className="stack" style={{ gap: 16 }}>
 			<div className="space-between">
-				<h2 style={{ margin: 0, color: "var(--primary)" }}>Dashboard</h2>
+				<h2 style={{ margin: 0, color: "var(--primary)" }}>Resumes</h2>
 				<button className="btn btn-secondary btn-sm" onClick={handleDeleteAll}>Delete All</button>
 			</div>
 			<div className="card" style={{ padding: 0 }}>

@@ -5,6 +5,8 @@ import Landing from "./pages/Landing";
 import Upload from "./pages/Upload";
 import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
+import Resumes from "./pages/Resumes";
+import Analysis from "./pages/Analysis";
 import Profile from "./pages/Profile";
 import ToastHost from "./components/ToastHost";
 
@@ -31,6 +33,22 @@ export default function App() {
 								</PrivateRoute>
 							}
 						/>
+								<Route
+									path="/resumes"
+									element={
+										<PrivateRoute>
+											<Resumes />
+										</PrivateRoute>
+									}
+								/>
+								<Route
+									path="/analysis"
+									element={
+										<PrivateRoute>
+											<Analysis />
+										</PrivateRoute>
+									}
+								/>
 						<Route
 							path="/profile"
 							element={

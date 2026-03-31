@@ -32,7 +32,7 @@ export default function Navbar() {
 						</div>
 					</Link>
 					<nav className="row">
-						<Link to="/upload" className="btn btn-ghost btn-sm">Analyze</Link>
+						{isAuthenticated && <Link to="/analysis" className="btn btn-ghost btn-sm">Analysis</Link>}
 						{isAuthenticated && <Link to="/dashboard" className="btn btn-ghost btn-sm">Dashboard</Link>}
 						{isAuthenticated && <Link to="/profile" className="btn btn-ghost btn-sm">Profile</Link>}
 						{!isAuthenticated ? (
