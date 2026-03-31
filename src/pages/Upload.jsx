@@ -7,6 +7,7 @@ export default function Upload() {
 	const [drag, setDrag] = useState(false);
 	const [jd, setJd] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [saveToLibrary, setSaveToLibrary] = useState(true);
 	const navigate = useNavigate();
 
 	function onDrop(e) {
@@ -23,8 +24,8 @@ export default function Upload() {
 		}
 		try {
 			setLoading(true);
-			const res = await api.uploadResume(file, jd);
-			navigate("/results", { state: { result: res?.analysis } });
+			const res = await api.uploadResume(file, jd, saveToLibrary);
+			navigate("/results", { state: { result: res?.analysis, saved: saveToLibrary } });
 		} catch (e) {
 			window.__toast?.push({ type: "error", title: "Upload failed", description: e.message });
 		} finally {
@@ -53,6 +54,21 @@ export default function Upload() {
 			<div className="card" style={{ padding: 20 }}>
 				<label className="label" htmlFor="jd">Job Description</label>
 				<textarea id="jd" className="textarea" placeholder="Paste the job description here..." value={jd} onChange={(e) => setJd(e.target.value)} />
+				<div style={{ marginTop: 12, marginBottom: 12 }}>
+					<label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+						<input 
+							type="checkbox" 
+							checked={saveToLibrary} 
+							onChange={(e) => setSaveToLibrary(e.target.checked)}
+						/>
+						<span>Save resume to my library</span>
+					</label>
+					{!saveToLibrary && (
+						<div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+							📌 Resume will be analyzed but not saved. Results will be temporary.
+						</div>
+					)}
+				</div>
 				<div className="row" style={{ justifyContent: "flex-end" }}>
 					<button className="btn btn-primary" onClick={submit} disabled={loading}>
 						{loading ? "Analyzing..." : "Run Analysis"}

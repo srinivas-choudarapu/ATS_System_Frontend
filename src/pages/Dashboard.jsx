@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import * as api from "../utils/api";
+import { isExpiredS3SignedUrl } from "../utils/s3Url";
 
 export default function Dashboard() {
 	const [loading, setLoading] = useState(true);
@@ -119,6 +120,24 @@ export default function Dashboard() {
 		}
 	}
 
+	function handleOpenPdf(resume) {
+		if (!resume?.file_url) {
+			window.__toast?.push({ type: "error", title: "File unavailable", description: "PDF URL is missing." });
+			return;
+		}
+
+		if (isExpiredS3SignedUrl(resume.file_url)) {
+			window.__toast?.push({
+				type: "error",
+				title: "Link expired",
+				description: "This PDF link has expired. Re-upload the resume to generate a fresh link."
+			});
+			return;
+		}
+
+		window.open(resume.file_url, "_blank", "noopener,noreferrer");
+	}
+
 	return (
 		<div className="stack" style={{ gap: 16 }}>
 			<div className="space-between">
@@ -166,7 +185,7 @@ export default function Dashboard() {
 						) : items.map((r) => (
 							<tr key={r.id}>
 								<td>{new Date(r.created_at).toLocaleString()}</td>
-								<td><a href={r.file_url} target="_blank" rel="noreferrer">View PDF</a></td>
+								<td><button className="btn btn-ghost btn-sm" onClick={() => handleOpenPdf(r)}>View PDF</button></td>
 								<td>
 									<button className="btn btn-ghost btn-sm" onClick={() => handleViewDetails(r.id)}>Details</button>
 									<button className="btn btn-ghost btn-sm" onClick={() => handleViewAnalyses(r.id)} style={{ marginLeft: 8 }}>Analyses</button>
