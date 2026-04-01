@@ -8,11 +8,20 @@ import { useAuth } from "../state/auth";
 export default function Results() {
 	const { state } = useLocation();
 	const base = state?.result || {};
+	const saved = state?.saved ?? true;
 	const { isAuthenticated } = useAuth();
 	const [open, setOpen] = useState(false);
 
 	return (
 		<div className="stack" style={{ gap: 20 }}>
+			{!saved && (
+				<div className="card" style={{ padding: 16, background: "var(--bg-warning, #fef3c7)", borderLeft: "4px solid var(--warning, #f59e0b)" }}>
+					<strong>⚠️ Temporary Analysis</strong>
+					<div className="muted" style={{ marginTop: 6, fontSize: 14 }}>
+						This resume was analyzed but not saved to your library. Go to <strong>Analyze</strong> and check the "Save resume to my library" option to keep it for future reference.
+					</div>
+				</div>
+			)}
 			<div className="card" style={{ padding: 20 }}>
 				<div className="space-between">
 					<div className="row" style={{ gap: 16 }}>

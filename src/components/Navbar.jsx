@@ -111,86 +111,26 @@ export default function Navbar() {
 						className={`nav-link${isActive("/upload") ? " active" : ""}`}
 					>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-							<polyline points="17 8 12 3 7 8"/>
-							<line x1="12" y1="3" x2="12" y2="15"/>
+							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+							<polyline points="17 8 12 3 7 8" />
+							<line x1="12" y1="3" x2="12" y2="15" />
 						</svg>
 						Analyze
 					</Link>
-
-					{isAuthenticated && (
-						<Link
-							to="/dashboard"
-							className={`nav-link${isActive("/dashboard") ? " active" : ""}`}
-						>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-								<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-								<rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-							</svg>
-							Dashboard
-						</Link>
-					)}
-
-					{isAuthenticated && (
-						<Link
-							to="/profile"
-							className={`nav-link${isActive("/profile") ? " active" : ""}`}
-						>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-								<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-								<circle cx="12" cy="7" r="4"/>
-							</svg>
-							Profile
-						</Link>
-					)}
-
-					{/* ── Separator ── */}
-					<div style={{ width: 1, height: 20, background: "var(--border-subtle)", margin: "0 6px" }} />
-
-					{/* ── Theme Toggle ── */}
-					<ThemeToggle />
-
-					{/* ── Separator ── */}
-					<div style={{ width: 1, height: 20, background: "var(--border-subtle)", margin: "0 6px" }} />
-
-					{/* ── Auth ── */}
-					{!isAuthenticated ? (
-						<button className="btn btn-primary btn-sm" onClick={() => setAuthOpen(true)}>
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-								<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-								<polyline points="10 17 15 12 10 7"/>
-								<line x1="15" y1="12" x2="3" y2="12"/>
-							</svg>
-							Login / Sign Up
-						</button>
-					) : (
-						<div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-							<div style={{
-								width: 32,
-								height: 32,
-								borderRadius: "50%",
-								background: "var(--gradient-primary)",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								fontSize: 13,
-								fontWeight: 700,
-								color: "white",
-								flexShrink: 0,
-								boxShadow: "0 0 12px var(--primary-glow)",
-							}}>
-								{user?.email?.[0]?.toUpperCase() || "U"}
-							</div>
-							<button className="btn btn-ghost btn-sm" onClick={handleLogout}
-								style={{ color: "var(--text-muted)", fontSize: 13 }}>
-								Logout
-							</button>
-						</div>
-					)}
-				</nav>
+					<nav className="row">
+						{isAuthenticated && <Link to="/analysis" className="btn btn-ghost btn-sm">Analysis</Link>}
+						{isAuthenticated && <Link to="/dashboard" className="btn btn-ghost btn-sm">Dashboard</Link>}
+						{isAuthenticated && <Link to="/profile" className="btn btn-ghost btn-sm">Profile</Link>}
+						{!isAuthenticated ? (
+							<button className="btn btn-primary btn-sm" onClick={() => setAuthOpen(true)}>Login / Signup</button>
+						) : (
+							<button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
+						)}
+					</nav>
 			</div>
+		</div>
 
-			{authOpen && <AuthDialog onClose={() => setAuthOpen(false)} />}
-		</header>
+			{ authOpen && <AuthDialog onClose={() => setAuthOpen(false)} /> }
+		</header >
 	);
 }

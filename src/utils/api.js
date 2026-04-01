@@ -1,10 +1,10 @@
 const base = "";
 
-async function request(path, { method = "GET", headers, body, formData } = {}) {
+async function request(path, { method = "GET", headers, body, formData, includeAuth = true } = {}) {
 	const init = {
 		method,
 		headers: headers || {},
-		credentials: "include"
+		credentials: includeAuth ? "include" : "omit"
 	};
 	if (formData) {
 		init.body = formData;
@@ -45,13 +45,16 @@ export function changePassword(oldPassword, newPassword) {
 }
 
 // Resume routes
-export function uploadResume(resumeFile, jdText) {
+export function uploadResume(resumeFile, jdText, shouldSave = true) {
 	const fd = new FormData();
 	fd.append("resume", resumeFile);
 	fd.append("jdText", jdText);
-	return request("/api/resume/upload", { method: "POST", formData: fd });
+	return request("/api/resume/upload", { method: "POST", formData: fd, includeAuth: shouldSave });
 }
 export function getResumeHistory() {
+	return request("/api/resume/history");
+}
+export function getAllResumes() {
 	return request("/api/resume/history");
 }
 export function getResumeById(id) {
@@ -71,6 +74,18 @@ export function runAnalysis(resumeId, jdText) {
 export function getAnalysisById(id) {
 	return request(`/api/analysis/${id}`);
 }
+export function deleteAnalysis(id) {
+	return request(`/api/analysis/${id}`, { method: "DELETE" });
+}
+export function deleteAnalysisByResumeId(resumeId) {
+	return request(`/api/analysis/resume/${resumeId}`, { method: "DELETE" });
+}
 export function getAnalysisByResumeId(resumeId) {
 	return request(`/api/analysis/resume/${resumeId}`);
+}
+export function getJDByAnalysisId(id) {
+	return request(`/api/analysis/${id}/jd`);
+}
+export function deleteAnalysis(id) {
+	return request(`/api/analysis/${id}`, { method: "DELETE" });
 }
