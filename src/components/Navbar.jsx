@@ -75,20 +75,12 @@ function ThemeToggle() {
 }
 
 export default function Navbar() {
-	const { isAuthenticated, user, setUser } = useAuth();
+	const { isAuthenticated, user } = useAuth();
 	const [authOpen, setAuthOpen] = useState(false);
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	async function handleLogout() {
-		try {
-			await api.logout();
-			setUser(null);
-			if (location.pathname !== "/") navigate("/");
-		} catch (e) {
-			// handled by toast
-		}
-	}
+
 
 	const isActive = (path) => location.pathname === path;
 
@@ -115,24 +107,39 @@ export default function Navbar() {
 							<polyline points="17 8 12 3 7 8" />
 							<line x1="12" y1="3" x2="12" y2="15" />
 						</svg>
-						Analyze
+						Upload
 					</Link>
-					<nav className="row">
-						{isAuthenticated && <Link to="/analysis" className="btn btn-ghost btn-sm">Analysis</Link>}
-						{isAuthenticated && <Link to="/dashboard" className="btn btn-ghost btn-sm">Dashboard</Link>}
-						{isAuthenticated && <Link to="/profile" className="btn btn-ghost btn-sm">Profile</Link>}
-						{!isAuthenticated ? (
-							<button className="btn btn-primary btn-sm" onClick={() => setAuthOpen(true)}>Login / Signup</button>
-						) : (
-							<button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
-						)}
-					</nav>
+
+					{isAuthenticated && (
+						<Link
+							to="/analysis"
+							className={`nav-link${isActive("/analysis") ? " active" : ""}`}
+						>
+							Analysis
+						</Link>
+					)}
+					{isAuthenticated && (
+						<Link
+							to="/profile"
+							className={`nav-link${isActive("/profile") ? " active" : ""}`}
+						>
+							Profile
+						</Link>
+					)}
+
+					<div className="navbar-divider" />
+
+					<ThemeToggle />
+
+					{!isAuthenticated && (
+						<button className="btn btn-primary btn-sm" onClick={() => setAuthOpen(true)}>
+							Login / Signup
+						</button>
+					)}
 				</nav>
 			</div>
-		</div>
 
-
-			{ authOpen && <AuthDialog onClose={() => setAuthOpen(false)} /> }
-		</header >
+			{authOpen && <AuthDialog onClose={() => setAuthOpen(false)} />}
+		</header>
 	);
 }

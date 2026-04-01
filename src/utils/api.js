@@ -86,6 +86,3 @@ export function getAnalysisByResumeId(resumeId) {
 export function getJDByAnalysisId(id) {
 	return request(`/api/analysis/${id}/jd`);
 }
-export function deleteAnalysis(id) {
-	return request(`/api/analysis/${id}`, { method: "DELETE" });
-}

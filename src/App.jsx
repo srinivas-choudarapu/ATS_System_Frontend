@@ -5,7 +5,6 @@ import Navbar from "./components/Navbar";
 import Landing from "./pages/Landing";
 import Upload from "./pages/Upload";
 import Results from "./pages/Results";
-import Dashboard from "./pages/Dashboard";
 import Resumes from "./pages/Resumes";
 import Analysis from "./pages/Analysis";
 import Profile from "./pages/Profile";
@@ -18,51 +17,46 @@ function PrivateRoute({ children }) {
 
 export default function App() {
 	return (
-		<AuthProvider>
-			<div className="app-shell">
-				<Navbar />
-				<main className="main-container">
-					<Routes>
-						<Route path="/" element={<Landing />} />
-						<Route path="/upload" element={<Upload />} />
-						<Route path="/results" element={<Results />} />
-						<Route
-							path="/dashboard"
-							element={
-								<PrivateRoute>
-									<Dashboard />
-								</PrivateRoute>
-							}
-						/>
-						<Route
-							path="/resumes"
-							element={
-								<PrivateRoute>
-									<Resumes />
-								</PrivateRoute>
-							}
-						/>
-						<Route
-							path="/analysis"
-							element={
-								<PrivateRoute>
-									<Analysis />
-								</PrivateRoute>
-							}
-						/>
-						<Route
-							path="/profile"
-							element={
-								<PrivateRoute>
-									<Profile />
-								</PrivateRoute>
-							}
-						/>
-						<Route path="*" element={<Navigate to="/" replace />} />
-					</Routes>
-				</main>
-				<ToastHost />
-			</div>
-		</AuthProvider>
+		<ThemeProvider>
+			<AuthProvider>
+				<div className="app-shell">
+					<Navbar />
+					<main className="main-container">
+						<Routes>
+							<Route path="/" element={<Landing />} />
+							<Route path="/upload" element={<Upload />} />
+							<Route path="/results" element={<Results />} />
+							<Route path="/dashboard" element={<Navigate to="/analysis" replace />} />
+							<Route
+								path="/resumes"
+								element={
+									<PrivateRoute>
+										<Resumes />
+									</PrivateRoute>
+								}
+							/>
+							<Route
+								path="/analysis"
+								element={
+									<PrivateRoute>
+										<Analysis />
+									</PrivateRoute>
+								}
+							/>
+							<Route
+								path="/profile"
+								element={
+									<PrivateRoute>
+										<Profile />
+									</PrivateRoute>
+								}
+							/>
+							<Route path="*" element={<Navigate to="/" replace />} />
+						</Routes>
+					</main>
+					<ToastHost />
+				</div>
+			</AuthProvider>
+		</ThemeProvider>
 	);
 }

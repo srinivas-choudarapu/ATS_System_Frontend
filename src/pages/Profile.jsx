@@ -1,18 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../state/auth";
 import { useNavigate } from "react-router-dom";
 import * as api from "../utils/api";
+import { isExpiredS3SignedUrl } from "../utils/s3Url";
+
+function cleanName(raw) {
+	if (!raw) return "resume.pdf";
+	return raw.replace(/^\d+-/, "");
+}
 
 export default function Profile() {
-	const { user } = useAuth();
+	const { user, setUser } = useAuth();
 	const navigate = useNavigate();
+
+	// Tabs: "overview", "resumes", "security"
+	const [activeTab, setActiveTab] = useState("overview");
+
+	// Data states
+	const [resumes, setResumes] = useState([]);
+	const [analyses, setAnalyses] = useState({});
+	const [resumesLoading, setResumesLoading] = useState(true);
+	
+	// Resume tab states
+	const [searchQuery, setSearchQuery] = useState("");
+	const [expandedResumeId, setExpandedResumeId] = useState(null);
+
+	// Security tab states
 	const [oldPassword, setOldPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [passwordLoading, setPasswordLoading] = useState(false);
-	const [resumes, setResumes] = useState([]);
-	const [resumesLoading, setResumesLoading] = useState(true);
-	const [expandedResumeId, setExpandedResumeId] = useState(null);
-	const [analyses, setAnalyses] = useState({});
 
 	useEffect(() => {
 		fetchResumeHistory();
@@ -58,7 +74,7 @@ export default function Profile() {
 		}
 	}
 
-	async function handleChange() {
+	async function handleChangePassword() {
 		if (!oldPassword || !newPassword) {
 			window.__toast?.push({ type: "error", title: "Missing", description: "Enter both old and new passwords." });
 			return;
@@ -66,7 +82,7 @@ export default function Profile() {
 		try {
 			setPasswordLoading(true);
 			await api.changePassword(oldPassword, newPassword);
-			window.__toast?.push({ type: "success", title: "Updated", description: "Password changed." });
+			window.__toast?.push({ type: "success", title: "Updated", description: "Password changed successfully." });
 			setOldPassword("");
 			setNewPassword("");
 		} catch (e) {
@@ -77,7 +93,7 @@ export default function Profile() {
 	}
 
 	async function handleDeleteResume(resumeId) {
-		if (!confirm("Are you sure you want to delete this resume?")) return;
+		if (!confirm("Are you sure you want to delete this resume? This cannot be undone.")) return;
 		try {
 			await api.deleteResume(resumeId);
 			setResumes(resumes.filter(r => r.id !== resumeId));
@@ -86,19 +102,36 @@ export default function Profile() {
 				delete updated[resumeId];
 				return updated;
 			});
+			if (expandedResumeId === resumeId) setExpandedResumeId(null);
 			window.__toast?.push({ type: "success", title: "Deleted", description: "Resume deleted successfully." });
 		} catch (e) {
 			window.__toast?.push({ type: "error", title: "Failed", description: e.message });
 		}
 	}
 
+	async function handleLogout() {
+		try {
+			await api.logout();
+			setUser(null);
+			navigate("/");
+		} catch (e) {
+			window.__toast?.push({ type: "error", title: "Failed", description: "Could not log out." });
+		}
+	}
+
+	function handleOpenPdf(url) {
+		if (!url) { window.__toast?.push({ type: "error", title: "File unavailable", description: "PDF URL is missing." }); return; }
+		if (isExpiredS3SignedUrl(url)) {
+			window.__toast?.push({ type: "error", title: "Link expired", description: "Re-upload the resume to get a fresh link." });
+			return;
+		}
+		window.open(url, "_blank", "noopener,noreferrer");
+	}
+
 	function formatDate(dateString) {
 		return new Date(dateString).toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "2-digit",
-			minute: "2-digit"
+			year: "numeric", month: "short", day: "numeric",
+			hour: "2-digit", minute: "2-digit"
 		});
 	}
 
@@ -108,392 +141,354 @@ export default function Profile() {
 		? Math.max(...Object.values(analyses).flat().filter(a => a.score).map(a => a.score || 0))
 		: 0;
 
-	const StatBadge = ({ icon, label, value, color }) => (
-		<div style={{
-			padding: 16,
-			background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
-			borderLeft: `3px solid ${color}`,
-			borderRadius: 8,
-			marginBottom: 12
-		}}>
-			<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-				<div style={{ fontSize: 18 }}>{icon}</div>
-				<div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>{label}</div>
-			</div>
-			<div style={{ fontSize: 22, fontWeight: 700, color, marginLeft: 26 }}>{value}</div>
-		</div>
-	);
+	// Filtered resumes
+	const filteredResumes = useMemo(() => {
+		if (!searchQuery) return resumes;
+		const query = searchQuery.toLowerCase();
+		return resumes.filter(r => {
+			const name = cleanName(r.file_url?.split("/").pop()).toLowerCase();
+			return name.includes(query);
+		});
+	}, [resumes, searchQuery]);
+
+	// Shared Tab Button Component
+	const TabButton = ({ id, icon, label }) => {
+		const isActive = activeTab === id;
+		return (
+			<button
+				onClick={() => setActiveTab(id)}
+				style={{
+					display: "flex", alignItems: "center", gap: 12, width: "100%",
+					padding: "12px 16px", borderRadius: "10px",
+					background: isActive ? "var(--primary)" : "transparent",
+					color: isActive ? "#fff" : "var(--text-secondary)",
+					border: "none", cursor: "pointer",
+					fontSize: 14, fontWeight: isActive ? 600 : 500,
+					transition: "all 0.2s ease", textAlign: "left"
+				}}
+				onMouseEnter={e => {
+					if (!isActive) e.currentTarget.style.background = "var(--bg-elevated)";
+				}}
+				onMouseLeave={e => {
+					if (!isActive) e.currentTarget.style.background = "transparent";
+				}}
+			>
+				<span style={{ fontSize: 18, opacity: isActive ? 1 : 0.7 }}>{icon}</span>
+				{label}
+			</button>
+		);
+	};
 
 	return (
-		<div style={{ maxWidth: 1400, margin: "0 auto" }}>
-			{/* Page Header */}
-			<div style={{ marginBottom: 40 }}>
-				<h1 style={{ fontSize: 32, fontWeight: 700, margin: "0 0 8px", color: "var(--primary)" }}>Account Settings</h1>
-				<p style={{ fontSize: 15, color: "var(--muted)", margin: 0 }}>Manage your profile, security, and documents</p>
+		<div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 0", animation: "fadeInUp 0.4s ease" }}>
+			
+			<div style={{ marginBottom: 32 }}>
+				<h1 style={{ fontSize: 32, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-0.5px" }}>
+					Account Settings
+				</h1>
+				<p style={{ fontSize: 15, color: "var(--text-muted)", margin: 0 }}>
+					Manage your profile, security, and view your resume history.
+				</p>
 			</div>
 
-			{/* Two Column Layout */}
-			<div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 32 }}>
-				{/* LEFT COLUMN - ACCOUNT INFORMATION */}
-				<div>
-					{/* Account Profile Card */}
-					<div className="card" style={{
-						padding: 24,
-						marginBottom: 24,
-						background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-						color: "white"
+			<div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 32, alignItems: "start" }}>
+				
+				{/* === LEFT SIDEBAR === */}
+				<aside style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+					
+					{/* User Card */}
+					<div style={{
+						background: "linear-gradient(135deg, var(--bg-card) 0%, rgba(99,102,241,0.05) 100%)",
+						border: "1px solid var(--border-subtle)",
+						borderRadius: "16px", padding: 20,
+						display: "flex", flexDirection: "column", alignItems: "center", textCenter: "center"
 					}}>
-						<div style={{ fontSize: 48, marginBottom: 16 }}>👤</div>
-						<div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Account Profile</div>
-						<div style={{ fontSize: 13, opacity: 0.9, marginBottom: 20 }}>Member since {memberSince}</div>
 						<div style={{
-							background: "rgba(255,255,255,0.15)",
-							padding: 12,
-							borderRadius: 8,
-							fontSize: 13,
-							wordBreak: "break-all"
+							width: 64, height: 64, borderRadius: "50%",
+							background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+							display: "flex", alignItems: "center", justifyContent: "center",
+							fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 12,
+							boxShadow: "0 8px 16px rgba(99,102,241,0.25)"
 						}}>
+							{user?.email?.charAt(0).toUpperCase() || "U"}
+						</div>
+						<div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", wordBreak: "break-all", textAlign: "center", lineHeight: 1.4 }}>
 							{user?.email}
 						</div>
+						<div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6, textAlign: "center" }}>
+							Member since {memberSince}
+						</div>
 					</div>
 
-					{/* Account Stats */}
-					<div style={{ marginBottom: 32 }}>
-						<h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid var(--border)" }}>Account Stats</h3>
-						<StatBadge icon="📄" label="Total Resumes" value={resumes.length} color="#667eea" />
-						<StatBadge icon="📊" label="Total Analyses" value={totalAnalyses} color="#f093fb" />
-						<StatBadge icon="⭐" label="Best Score" value={`${bestScore}%`} color="#f5576c" />
-					</div>
+					{/* Navigation */}
+					<nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+						<TabButton id="overview" icon="📊" label="Overview" />
+						<TabButton id="resumes" icon="📄" label="My Resumes" />
+						<TabButton id="security" icon="🔐" label="Security" />
+						
+						<div style={{ height: 1, background: "var(--border-subtle)", margin: "12px 0" }} />
+						
+						<button
+							onClick={handleLogout}
+							style={{
+								display: "flex", alignItems: "center", gap: 12, width: "100%",
+								padding: "12px 16px", borderRadius: "10px",
+								background: "rgba(244,63,94,0.08)", color: "#fb7185",
+								border: "1px solid rgba(244,63,94,0.2)", cursor: "pointer",
+								fontSize: 14, fontWeight: 600, transition: "all 0.2s ease", textAlign: "left"
+							}}
+							onMouseEnter={e => e.currentTarget.style.background = "rgba(244,63,94,0.15)"}
+							onMouseLeave={e => e.currentTarget.style.background = "rgba(244,63,94,0.08)"}
+						>
+							<span style={{ fontSize: 18, opacity: 0.9 }}>🚪</span>
+							Log Out
+						</button>
+					</nav>
+				</aside>
 
-					{/* Security Section */}
-					<div className="card" style={{ padding: 24 }}>
-						<div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-							<div style={{
-								width: 40,
-								height: 40,
-								borderRadius: 10,
-								background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								fontSize: 20
-							}}>🔐</div>
-							<div>
-								<div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Security</div>
-								<div style={{ fontSize: 12, color: "var(--muted)" }}>Update your password</div>
+				{/* === RIGHT CONTENT === */}
+				<main style={{ minHeight: 500 }}>
+					
+					{/* OVERVIEW TAB */}
+					{activeTab === "overview" && (
+						<div style={{ animation: "fadeIn 0.3s ease" }}>
+							<h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 24px", color: "var(--text)" }}>Account Overview</h2>
+							
+							<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>📄</div>
+									<div>
+										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{resumes.length}</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Total Resumes</div>
+									</div>
+								</div>
+								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(16,185,129,0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🔍</div>
+									<div>
+										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{totalAnalyses}</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Total Analyses</div>
+									</div>
+								</div>
+								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(245,158,11,0.1)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>⭐</div>
+									<div>
+										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{bestScore}%</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Top Score</div>
+									</div>
+								</div>
+							</div>
+
+							<h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px", color: "var(--text)" }}>Quick Actions</h3>
+							<div style={{ display: "flex", gap: 16 }}>
+								<button className="btn btn-primary" onClick={() => navigate("/upload")}>
+									<span style={{ fontSize: 16 }}>⬆️</span> Upload New Resume
+								</button>
+								<button className="btn btn-secondary" onClick={() => navigate("/analysis")}>
+									<span style={{ fontSize: 16 }}>📊</span> Run Detailed Analysis
+								</button>
 							</div>
 						</div>
-						<div style={{
-							padding: 12,
-							background: "#f8f9fa",
-							borderRadius: 8,
-							marginBottom: 16,
-							fontSize: 13,
-							color: "var(--muted)",
-							display: "flex",
-							alignItems: "center",
-							gap: 8
-						}}>
-							<span style={{ fontSize: 16 }}>✅</span>
-							Password protected account
-						</div>
-						<div className="stack" style={{ gap: 12 }}>
-							<input
-								className="input"
-								type="password"
-								placeholder="Current password"
-								value={oldPassword}
-								onChange={(e) => setOldPassword(e.target.value)}
-								style={{ fontSize: 14 }}
-							/>
-							<input
-								className="input"
-								type="password"
-								placeholder="New password"
-								value={newPassword}
-								onChange={(e) => setNewPassword(e.target.value)}
-								style={{ fontSize: 14 }}
-							/>
-							<button
-								className="btn btn-primary"
-								onClick={handleChange}
-								disabled={passwordLoading}
-								style={{ width: "100%", fontSize: 14 }}
-							>
-								{passwordLoading ? "Updating..." : "Update Password"}
-							</button>
-						</div>
-					</div>
+					)}
 
-					{/* Quick Links */}
-					<div style={{ marginTop: 24 }}>
-						<h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Quick Actions</h3>
-						<button
-							className="btn"
-							onClick={() => navigate("/upload")}
-							style={{
-								width: "100%",
-								background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-								color: "white",
-								border: "none",
-								fontSize: 14,
-								marginBottom: 10
-							}}
-						>
-							⬆️ Upload New Resume
-						</button>
-						<button
-							className="btn"
-							onClick={() => navigate("/analyze")}
-							style={{
-								width: "100%",
-								background: "#f8f9fa",
-								color: "var(--primary)",
-								border: "1px solid var(--border)",
-								fontSize: 14
-							}}
-						>
-							📊 Run Analysis
-						</button>
-					</div>
-				</div>
-
-				{/* RIGHT COLUMN - YOUR RESUMES */}
-				<div>
-					<div style={{ marginBottom: 24 }}>
-						<h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 8px", color: "var(--text)" }}>Your Resumes</h2>
-						<p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Manage your uploaded documents and view analysis history</p>
-					</div>
-
-					{resumesLoading ? (
-						<div className="card" style={{
-							textAlign: "center",
-							padding: "60px 20px",
-							color: "var(--muted)"
-						}}>
-							<div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-							<p style={{ fontSize: 15 }}>Loading your resumes...</p>
-						</div>
-					) : resumes.length === 0 ? (
-						<div className="card" style={{
-							textAlign: "center",
-							padding: "60px 20px"
-						}}>
-							<div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
-							<p style={{ fontSize: 16, fontWeight: 500, color: "var(--text)", margin: "0 0 8px" }}>No resumes yet</p>
-							<p style={{ fontSize: 14, color: "var(--muted)", margin: "0 0 24px" }}>Upload your resume to start getting instant ATS feedback</p>
-							<button
-								className="btn btn-primary"
-								onClick={() => navigate("/upload")}
-								style={{ fontSize: 14 }}
-							>
-								⬆️ Upload Your Resume
-							</button>
-						</div>
-					) : (
-						<div className="stack" style={{ gap: 16 }}>
-							{resumes.map((resume) => {
-								const resumeAnalyses = analyses[resume.id] || [];
-								const bestResumeScore = resumeAnalyses.length > 0 
-									? Math.max(...resumeAnalyses.map(a => a.score || 0))
-									: 0;
-
-								return (
-									<div
-										key={resume.id}
-										className="card"
+					{/* MY RESUMES TAB */}
+					{activeTab === "resumes" && (
+						<div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", height: "100%" }}>
+							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
+								<div>
+									<h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 6px", color: "var(--text)" }}>My Resumes</h2>
+									<p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>View, manage, and analyze your uploaded resumes.</p>
+								</div>
+								
+								<div style={{ position: "relative", width: 260 }}>
+									<span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--text-muted)" }}>🔍</span>
+									<input
+										type="text"
+										placeholder="Search resumes..."
+										value={searchQuery}
+										onChange={e => setSearchQuery(e.target.value)}
 										style={{
-											overflow: "hidden",
-											transition: "all 0.3s ease"
+											width: "100%", padding: "10px 10px 10px 36px",
+											background: "var(--bg-elevated)", border: "1px solid var(--border)",
+											borderRadius: 8, color: "var(--text)", fontSize: 13,
+											outline: "none"
 										}}
-										onMouseEnter={(e) => {
-											e.currentTarget.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.12)";
-											e.currentTarget.style.transform = "translateY(-2px)";
-										}}
-										onMouseLeave={(e) => {
-											e.currentTarget.style.boxShadow = "var(--shadow)";
-											e.currentTarget.style.transform = "translateY(0)";
-										}}
-									>
-										{/* Resume Header */}
-										<div
-											style={{
-												padding: 20,
-												background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-												display: "flex",
-												justifyContent: "space-between",
-												alignItems: "center",
-												cursor: "pointer",
-												color: "white"
-											}}
-											onClick={() => fetchAnalyses(resume.id)}
-										>
-											<div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-												<div style={{ fontSize: 28 }}>📄</div>
-												<div>
-													<div style={{ fontWeight: 600, marginBottom: 4, fontSize: 16 }}>
-														Resume #{resume.id.slice(0, 8)}
+									/>
+								</div>
+							</div>
+
+							{resumesLoading ? (
+								<div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
+									<div style={{ fontSize: 32, marginBottom: 12, animation: "spin 2s linear infinite" }}>⏳</div>
+									<p>Loading your documents...</p>
+								</div>
+							) : filteredResumes.length === 0 ? (
+								<div className="card" style={{ padding: 60, textAlign: "center", border: "1px dashed var(--border)" }}>
+									<div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+									<h3 style={{ margin: "0 0 8px", color: "var(--text)" }}>{searchQuery ? "No matches found" : "No resumes uploaded"}</h3>
+									<p style={{ margin: "0 0 24px", color: "var(--text-muted)", fontSize: 14 }}>
+										{searchQuery ? "Try a different search term." : "Upload your first resume to start getting AI insights."}
+									</p>
+									{!searchQuery && (
+										<button className="btn btn-primary" onClick={() => navigate("/upload")}>Upload Resume</button>
+									)}
+								</div>
+							) : (
+								<div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+									{filteredResumes.map((resume) => {
+										const filename = cleanName(resume.file_url?.split("/").pop());
+										const resumeAnalyses = analyses[resume.id] || [];
+										const isExpanded = expandedResumeId === resume.id;
+										
+										return (
+											<div key={resume.id} style={{
+												background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
+												borderRadius: 12, overflow: "hidden", transition: "all 0.2s ease",
+												boxShadow: isExpanded ? "0 8px 24px rgba(0,0,0,0.15)" : "none"
+											}}>
+												{/* Row Header */}
+												<div
+													style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "var(--bg-elevated)" : "transparent" }}
+													onClick={() => fetchAnalyses(resume.id)}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+														<div style={{ width: 40, height: 40, borderRadius: 8, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+															📄
+														</div>
+														<div>
+															<div style={{ fontWeight: 600, color: "var(--text)", fontSize: 14, marginBottom: 2 }}>{filename}</div>
+															<div style={{ fontSize: 12, color: "var(--text-muted)" }}>Uploaded {formatDate(resume.created_at)}</div>
+														</div>
 													</div>
-													<div style={{ fontSize: 13, opacity: 0.9 }}>
-														Uploaded {formatDate(resume.created_at)}
+													
+													<div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+														{resumeAnalyses.length > 0 && (
+															<div style={{ textAlign: "right" }}>
+																<div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Best Score</div>
+																<div style={{ fontSize: 15, fontWeight: 700, color: "var(--primary-light)" }}>
+																	{Math.max(...resumeAnalyses.map(a => a.score || 0))}%
+																</div>
+															</div>
+														)}
+														<div style={{ color: "var(--text-muted)", transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}>
+															▼
+														</div>
 													</div>
 												</div>
-											</div>
-											<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-												{resumeAnalyses.length > 0 && (
-													<div style={{ textAlign: "right" }}>
-														<div style={{ fontSize: 12, opacity: 0.8 }}>Best Score</div>
-														<div style={{ fontSize: 20, fontWeight: 700 }}>{bestResumeScore}%</div>
-													</div>
-												)}
-												<div style={{ fontSize: 16 }}>{expandedResumeId === resume.id ? "▼" : "▶"}</div>
-											</div>
-										</div>
 
-										{/* Resume Info & Actions */}
-										<div style={{
-											padding: 20,
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "flex-start",
-											borderBottom: "1px solid var(--border)"
-										}}>
-											<div>
-												<div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>Analyses</div>
-												<div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>{resumeAnalyses.length}</div>
-											</div>
-											<div style={{ display: "flex", gap: 8 }}>
-												<button
-													className="btn btn-primary"
-													onClick={(e) => {
-														e.stopPropagation();
-														window.open(resume.file_url, "_blank");
-													}}
-													style={{ fontSize: 13, padding: "8px 14px", whiteSpace: "nowrap" }}
-												>
-													👁️ View PDF
-												</button>
-												<button
-													className="btn btn-secondary"
-													onClick={() => navigate("/upload")}
-													style={{ fontSize: 13, padding: "8px 14px", whiteSpace: "nowrap" }}
-												>
-													📊 Analyze
-												</button>
-												<button
-													className="btn"
-													style={{
-														background: "#ffe5e5",
-														color: "#d32f2f",
-														border: "1px solid #ffb3b3",
-														fontSize: 13,
-														padding: "8px 14px",
-														whiteSpace: "nowrap"
-													}}
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDeleteResume(resume.id);
-													}}
-												>
-													🗑️
-												</button>
-											</div>
-										</div>
+												{/* Expanded Detail Panel */}
+												{isExpanded && (
+													<div style={{ padding: "0 20px 20px", borderTop: "1px solid var(--border-subtle)", background: "var(--bg-card)" }}>
+														
+														<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: "1px dashed var(--border-subtle)", marginBottom: 16 }}>
+															<div>
+																<div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>Analysis Runs</div>
+																<div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>{resumeAnalyses.length}</div>
+															</div>
+															<div style={{ display: "flex", gap: 8 }}>
+																<button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); handleOpenPdf(resume.file_url); }} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+																	👁️ View PDF
+																</button>
+																<button className="btn btn-sm btn-primary" onClick={(e) => { e.stopPropagation(); navigate("/analysis"); }}>
+																	📊 Analyze
+																</button>
+																<button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); handleDeleteResume(resume.id); }} style={{ color: "#ef4444", background: "rgba(239,68,68,0.1)" }}>
+																	🗑️ Delete
+																</button>
+															</div>
+														</div>
 
-										{/* Analyses List */}
-										{expandedResumeId === resume.id && resumeAnalyses && (
-											<div style={{
-												padding: 20,
-												background: "#f8f9fa"
-											}}>
-												{resumeAnalyses.length === 0 ? (
-													<div style={{
-														textAlign: "center",
-														padding: 20,
-														fontSize: 14,
-														color: "var(--muted)"
-													}}>
-														<div style={{ fontSize: 24, marginBottom: 8 }}>🔍</div>
-														<p style={{ margin: 0 }}>No analyses yet</p>
-													</div>
-												) : (
-													<div className="stack" style={{ gap: 12 }}>
-														{resumeAnalyses.map((analysis) => (
-															<div
-																key={analysis.id}
-																style={{
-																	padding: 14,
-																	border: "1px solid var(--border)",
-																	borderRadius: 8,
-																	background: "white",
-																	display: "flex",
-																	justifyContent: "space-between",
-																	alignItems: "center",
-																	transition: "all 0.2s ease",
-																	cursor: "pointer"
-																}}
-																onClick={() => navigate("/results", { state: { analysis } })}
-																onMouseEnter={(e) => {
-																	e.currentTarget.style.borderColor = "var(--primary)";
-																	e.currentTarget.style.background = "#f8faff";
-																}}
-																onMouseLeave={(e) => {
-																	e.currentTarget.style.borderColor = "var(--border)";
-																	e.currentTarget.style.background = "white";
-																}}
-															>
-																<div style={{ flex: 1 }}>
-																	<div style={{
-																		fontSize: 13,
-																		fontWeight: 600,
-																		color: "var(--text)",
-																		marginBottom: 4,
-																		display: "flex",
-																		alignItems: "center",
-																		gap: 8
-																	}}>
-																		<div style={{
-																			width: 32,
-																			height: 32,
-																			borderRadius: 6,
-																			background: `hsl(${analysis.score * 1.2}, 80%, 50%)`,
-																			display: "flex",
-																			alignItems: "center",
-																			justifyContent: "center",
-																			fontWeight: 700,
-																			color: "white",
-																			fontSize: 12
-																		}}>
-																			{analysis.score}%
-																		</div>
-																		<div>
-																			<div>Score: {analysis.score}</div>
-																			<div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 400 }}>
-																				{formatDate(analysis.created_at)}
+														{resumeAnalyses.length === 0 ? (
+															<div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+																No analyses have been run for this resume yet.
+															</div>
+														) : (
+															<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+																<div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>History</div>
+																{resumeAnalyses.map(analysis => (
+																	<div key={analysis.id} onClick={() => navigate("/results", { state: { analysis } })} style={{
+																		display: "flex", alignItems: "center", justifyContent: "space-between",
+																		padding: "12px 16px", borderRadius: 8, background: "var(--bg-elevated)",
+																		border: "1px solid var(--border-subtle)", cursor: "pointer", transition: "border 0.2s"
+																	}} onMouseEnter={e => e.currentTarget.style.borderColor="var(--primary)"} onMouseLeave={e => e.currentTarget.style.borderColor="var(--border-subtle)"}>
+																		<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+																			<div style={{ background: `hsl(${analysis.score * 1.2}, 70%, 50%)`, color: "#fff", width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, boxShadow: `0 0 10px rgba(0,0,0,0.2)` }}>
+																				{analysis.score}%
+																			</div>
+																			<div>
+																				<div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", marginBottom: 2 }}>Analysis Result</div>
+																				<div style={{ fontSize: 11, color: "var(--text-muted)" }}>{formatDate(analysis.created_at)}</div>
 																			</div>
 																		</div>
+																		<div style={{ color: "var(--text-muted)", fontSize: 14 }}>➔</div>
 																	</div>
-																</div>
-																<div style={{ fontSize: 18 }}>→</div>
+																))}
 															</div>
-														))}
+														)}
 													</div>
 												)}
 											</div>
-										)}
-									</div>
-								);
-							})}
+										);
+									})}
+								</div>
+							)}
 						</div>
 					)}
-				</div>
+
+					{/* SECURITY TAB */}
+					{activeTab === "security" && (
+						<div style={{ animation: "fadeIn 0.3s ease", maxWidth: 480 }}>
+							<h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 24px", color: "var(--text)" }}>Security Update</h2>
+							
+							<div className="card" style={{ padding: 24 }}>
+								<div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+									<div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(244,63,94,0.1)", color: "#f43f5e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+										🔐
+									</div>
+									<div>
+										<div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Change Password</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)" }}>Ensure your account stays secure</div>
+									</div>
+								</div>
+								
+								<div style={{ padding: "12px 14px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, marginBottom: 20, fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10 }}>
+									<span style={{ color: "#10b981", fontSize: 16 }}>✓</span> Password protected account
+								</div>
+								
+								<div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+									<div>
+										<label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Current Password</label>
+										<input
+											className="input" type="password" placeholder="Enter current password"
+											value={oldPassword} onChange={(e) => setOldPassword(e.target.value)}
+										/>
+									</div>
+									<div>
+										<label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>New Password</label>
+										<input
+											className="input" type="password" placeholder="Enter new password"
+											value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+										/>
+									</div>
+									<button
+										className="btn btn-primary" onClick={handleChangePassword} disabled={passwordLoading}
+										style={{ marginTop: 8 }}
+									>
+										{passwordLoading ? "Updating..." : "Update Password"}
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
+				</main>
 			</div>
 
-			{/* Responsive Breakpoint */}
 			<style>{`
-				@media (max-width: 1024px) {
-					[style*="display: grid"][style*="gridTemplateColumns"] {
+				@media (max-width: 820px) {
+					[style*="grid-template-columns: 260px"] {
 						grid-template-columns: 1fr !important;
+					}
+					aside {
+						margin-bottom: 24px;
 					}
 				}
 			`}</style>
