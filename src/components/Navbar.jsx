@@ -127,8 +127,10 @@ export default function Navbar() {
 							<button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
 						)}
 					</nav>
+				</nav>
 			</div>
 		</div>
+
 
 			{ authOpen && <AuthDialog onClose={() => setAuthOpen(false)} /> }
 		</header >
