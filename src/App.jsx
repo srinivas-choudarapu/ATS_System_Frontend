@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./state/auth";
+import { ThemeProvider } from "./state/theme";
 import Navbar from "./components/Navbar";
 import Landing from "./pages/Landing";
 import Upload from "./pages/Upload";
@@ -15,35 +16,37 @@ function PrivateRoute({ children }) {
 
 export default function App() {
 	return (
-		<AuthProvider>
-			<div className="app-shell">
-				<Navbar />
-				<main className="main-container">
-					<Routes>
-						<Route path="/" element={<Landing />} />
-						<Route path="/upload" element={<Upload />} />
-						<Route path="/results" element={<Results />} />
-						<Route
-							path="/dashboard"
-							element={
-								<PrivateRoute>
-									<Dashboard />
-								</PrivateRoute>
-							}
-						/>
-						<Route
-							path="/profile"
-							element={
-								<PrivateRoute>
-									<Profile />
-								</PrivateRoute>
-							}
-						/>
-						<Route path="*" element={<Navigate to="/" replace />} />
-					</Routes>
-				</main>
-				<ToastHost />
-			</div>
-		</AuthProvider>
+		<ThemeProvider>
+			<AuthProvider>
+				<div className="app-shell">
+					<Navbar />
+					<main className="main-container">
+						<Routes>
+							<Route path="/" element={<Landing />} />
+							<Route path="/upload" element={<Upload />} />
+							<Route path="/results" element={<Results />} />
+							<Route
+								path="/dashboard"
+								element={
+									<PrivateRoute>
+										<Dashboard />
+									</PrivateRoute>
+								}
+							/>
+							<Route
+								path="/profile"
+								element={
+									<PrivateRoute>
+										<Profile />
+									</PrivateRoute>
+								}
+							/>
+							<Route path="*" element={<Navigate to="/" replace />} />
+						</Routes>
+					</main>
+					<ToastHost />
+				</div>
+			</AuthProvider>
+		</ThemeProvider>
 	);
 }
