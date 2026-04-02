@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import * as api from "../utils/api";
 import { useAuth } from "../state/auth";
 
@@ -46,7 +47,7 @@ export default function AuthDialog({ onClose }) {
 		forgot: "We'll send a temporary password to your email",
 	};
 
-	return (
+	return createPortal(
 		/* Backdrop */
 		<div
 			onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -258,6 +259,7 @@ export default function AuthDialog({ onClose }) {
 					)}
 				</div>
 			</div>
-		</div>
+		</div>,
+		document.body
 	);
 }

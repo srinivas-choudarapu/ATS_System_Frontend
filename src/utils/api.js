@@ -1,4 +1,4 @@
-const base = "";
+const base = process.env.BASE_URL || "";
 
 async function request(path, { method = "GET", headers, body, formData, includeAuth = true } = {}) {
 	const init = {

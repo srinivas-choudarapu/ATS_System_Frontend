@@ -11,7 +11,7 @@ export default defineConfig({
 	},
 	plugins: [react()],
 	server: {
-		port: 5173,
+		port: process.env.PORT,
 		proxy: {
 			"/api": {
 				target: process.env.BASE_URL,
