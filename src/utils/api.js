@@ -1,5 +1,4 @@
-const base = process.env.BASE_URL || "";
-
+const base =  import.meta.env.VITE_API_URL;
 async function request(path, { method = "GET", headers, body, formData, includeAuth = true } = {}) {
 	const init = {
 		method,

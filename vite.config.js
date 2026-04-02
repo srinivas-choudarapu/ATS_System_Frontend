@@ -14,7 +14,7 @@ export default defineConfig({
 		port: process.env.PORT,
 		proxy: {
 			"/api": {
-				target: process.env.BASE_URL,
+				target: process.env.VITE_API_URL,
 				changeOrigin: true,
 				withCredentials: true
 			}
