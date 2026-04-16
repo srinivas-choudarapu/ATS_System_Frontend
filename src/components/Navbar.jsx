@@ -89,7 +89,18 @@ export default function Navbar() {
 			<div className="navbar-inner">
 				{/* ── Logo ── */}
 				<Link to="/" className="navbar-logo">
-					<div className="navbar-logo-icon">⚡</div>
+					<div className="navbar-logo-icon" style={{ background: "transparent", boxShadow: "none" }}>
+						<svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H14l5 5v12.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 19.5z" stroke="url(#brandGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="rgba(99,102,241,0.08)"/>
+							<path d="M14 2v5h5M8 13l2 2 4-4" stroke="url(#brandGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+							<defs>
+								<linearGradient id="brandGrad" x1="4" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
+									<stop stopColor="#6366f1" />
+									<stop offset="1" stopColor="#06b6d4" />
+								</linearGradient>
+							</defs>
+						</svg>
+					</div>
 					<div className="navbar-logo-text">
 						<strong>ATS Analyzer</strong>
 						<span>Resume Intelligence</span>
@@ -107,7 +118,7 @@ export default function Navbar() {
 							<polyline points="17 8 12 3 7 8" />
 							<line x1="12" y1="3" x2="12" y2="15" />
 						</svg>
-						Upload
+						<span className="hide-mobile-text">Upload</span>
 					</Link>
 
 					{isAuthenticated && (
@@ -115,15 +126,45 @@ export default function Navbar() {
 							to="/analysis"
 							className={`nav-link${isActive("/analysis") ? " active" : ""}`}
 						>
-							Analysis
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+							<span className="hide-mobile-text">Analysis</span>
 						</Link>
 					)}
 					{isAuthenticated && (
 						<Link
 							to="/profile"
-							className={`nav-link${isActive("/profile") ? " active" : ""}`}
+							title="View Profile"
+							style={{
+								width: 34,
+								height: 34,
+								borderRadius: "50%",
+								background: "var(--gradient-primary)",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								color: "#fff",
+								fontWeight: 700,
+								fontSize: 14,
+								textDecoration: "none",
+								boxShadow: isActive("/profile") ? "0 0 0 2px var(--bg), 0 0 0 4px var(--primary)" : "0 2px 8px rgba(0,0,0,0.2)",
+								transition: "transform 0.2s, box-shadow 0.2s",
+								marginLeft: 4,
+								flexShrink: 0
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.transform = "scale(1.05)";
+								if (!isActive("/profile")) e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.transform = "scale(1)";
+								if (!isActive("/profile")) e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+							}}
 						>
-							Profile
+							{user?.email ? user.email.charAt(0).toUpperCase() : "U"}
 						</Link>
 					)}
 

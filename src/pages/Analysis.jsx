@@ -567,6 +567,15 @@ export default function Analysis() {
 					from { transform: translateX(100%); opacity: 0; }
 					to   { transform: translateX(0);    opacity: 1; }
 				}
+				.analysis-grid {
+					display: grid;
+					grid-template-columns: 320px 1fr;
+				}
+				@media (max-width: 820px) {
+					.analysis-grid {
+						grid-template-columns: 1fr;
+					}
+				}
 			`}</style>
 
 			<div style={{ maxWidth: 1400, margin: "0 auto", animation: "fadeInUp 0.4s ease" }}>
@@ -602,7 +611,7 @@ export default function Analysis() {
 				</div>
 
 				{/* === Two-column layout === */}
-				<div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 24, alignItems: "start" }}>
+				<div className="analysis-grid" style={{ gap: 24, alignItems: "start" }}>
 
 					{/* LEFT: Saved Resumes */}
 					<div>

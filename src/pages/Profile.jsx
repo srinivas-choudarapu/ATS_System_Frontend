@@ -254,36 +254,36 @@ export default function Profile() {
 						<div style={{ animation: "fadeIn 0.3s ease" }}>
 							<h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 24px", color: "var(--text)" }}>Account Overview</h2>
 							
-							<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+							<div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
 								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
-									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>📄</div>
-									<div>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📄</div>
+									<div style={{ minWidth: 0 }}>
 										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{resumes.length}</div>
-										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Total Resumes</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Total Resumes</div>
 									</div>
 								</div>
 								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
-									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(16,185,129,0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🔍</div>
-									<div>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(16,185,129,0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🔍</div>
+									<div style={{ minWidth: 0 }}>
 										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{totalAnalyses}</div>
-										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Total Analyses</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Total Analyses</div>
 									</div>
 								</div>
 								<div className="card" style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
-									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(245,158,11,0.1)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>⭐</div>
-									<div>
+									<div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(245,158,11,0.1)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>⭐</div>
+									<div style={{ minWidth: 0 }}>
 										<div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>{bestScore}%</div>
-										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Top Score</div>
+										<div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Top Score</div>
 									</div>
 								</div>
 							</div>
 
 							<h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px", color: "var(--text)" }}>Quick Actions</h3>
-							<div style={{ display: "flex", gap: 16 }}>
-								<button className="btn btn-primary" onClick={() => navigate("/upload")}>
+							<div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+								<button className="btn btn-primary" onClick={() => navigate("/upload")} style={{ flex: "1 1 auto" }}>
 									<span style={{ fontSize: 16 }}>⬆️</span> Upload New Resume
 								</button>
-								<button className="btn btn-secondary" onClick={() => navigate("/analysis")}>
+								<button className="btn btn-secondary" onClick={() => navigate("/analysis")} style={{ flex: "1 1 auto" }}>
 									<span style={{ fontSize: 16 }}>📊</span> Run Detailed Analysis
 								</button>
 							</div>

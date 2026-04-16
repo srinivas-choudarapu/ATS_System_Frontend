@@ -29,7 +29,7 @@ export default function Results() {
 						<div className="stack">
 							<strong style={{ fontSize: 20, color: "var(--primary)" }}>Your ATS Score</strong>
 							<div className="muted">Higher scores indicate better alignment to the job description.</div>
-							<div className="row" style={{ gap: 16 }}>
+							<div className="row" style={{ gap: 16, flexWrap: "wrap" }}>
 								<Pill label="Skills" value={base.skillScore} />
 								<Pill label="Experience" value={base.experienceScore} />
 								<Pill label="Education" value={base.educationScore} />
