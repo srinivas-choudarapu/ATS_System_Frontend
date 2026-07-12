@@ -34,20 +34,23 @@ export default function Landing() {
 					lineHeight: 1.1,
 					maxWidth: 900, 
 					margin: "0 0 24px",
-					background: "linear-gradient(135deg, #fff 0%, #a5b4fc 100%)",
-					WebkitBackgroundClip: "text",
-					WebkitTextFillColor: "transparent"
+					color: "#3730a3"
 				}}>
 					Beat the ATS.<br/>Land the Interview.
 				</h1>
 				<p style={{ 
-					fontSize: 18, 
+					fontSize: 19, 
 					color: "var(--text-secondary)", 
-					maxWidth: 600, 
+					maxWidth: 620, 
 					margin: "0 0 40px", 
-					lineHeight: 1.6 
+					lineHeight: 1.8,
+					letterSpacing: "0.3px",
+					fontWeight: 400,
+					position: "relative",
+					padding: "0 24px",
 				}}>
-					Upload your resume and paste your target job description. Our AI analyzes your match rate and gives actionable keyword recommendations in seconds.
+					<span style={{ color: "#6366f1", fontWeight: 600 }}>Upload your resume</span> and <span style={{ color: "#6366f1", fontWeight: 600 }}>paste your target job description</span>.<br/>
+					Our AI <span style={{ color: "#6366f1", fontWeight: 600 }}>analyzes your match rate</span> and gives <span style={{ color: "#6366f1", fontWeight: 600 }}>actionable keyword recommendations</span> in seconds.
 				</p>
 				<div className="row" style={{ gap: 16, justifyContent: "center" }}>
 					<button className="btn btn-primary btn-lg" onClick={() => navigate("/upload")} style={{ padding: "16px 32px", fontSize: 16 }}>
